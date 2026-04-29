@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>16-BYTES // JANITOR_MODE</title>
+    <title>16-BYTES // JANITOR_TOOLS</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
@@ -11,11 +11,10 @@
             font-family: 'Press Start 2P', cursive; cursor: none;
         }
 
-        /* SCANLINE EFFECT */
         #crt {
             position: fixed; inset: 0; pointer-events: none; z-index: 100;
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%),
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
             background-size: 100% 4px, 3px 100%;
         }
 
@@ -25,79 +24,90 @@
             position: fixed; inset: 0; background: #050510;
             display: flex; flex-direction: column; align-items: center; 
             justify-content: center; z-index: 200; color: #fff; text-align: center;
-            padding: 20px;
         }
 
-        #tutorial-box {
-            background: #000; border: 4px double #00f2ff;
-            padding: 20px; max-width: 600px; margin-top: 20px;
+        /* TUTORIAL BOX */
+        #home-tutorial {
+            background: #000; border: 4px double #ff0055;
+            padding: 30px; max-width: 700px; margin-bottom: 20px;
         }
 
         #ui-bar {
             position: absolute; top: 0; width: 100%; height: 50px;
             display: flex; align-items: center; justify-content: space-around;
-            background: rgba(0,0,0,0.9); border-bottom: 2px solid #ff0055; 
+            background: rgba(0,0,0,0.9); border-bottom: 2px solid #00f2ff; 
             font-size: 8px; z-index: 50; color: #fff;
         }
 
         .btn {
-            background: #222; border: 3px solid #00f2ff; color: #00f2ff;
-            padding: 15px; margin: 10px; font-family: 'Press Start 2P';
-            cursor: pointer; font-size: 10px;
+            background: #111; border: 2px solid #00f2ff; color: #00f2ff;
+            padding: 10px; margin: 5px; font-family: 'Press Start 2P';
+            cursor: pointer; font-size: 8px;
         }
         .btn:hover { background: #00f2ff; color: #000; }
+        .btn.locked { border-color: #444; color: #444; }
 
+        /* DYNAMIC CROSSHAIR */
         #crosshair {
-            position: fixed; width: 24px; height: 24px; border: 2px solid #fff;
+            position: fixed; width: 30px; height: 30px;
             pointer-events: none; z-index: 400; transform: translate(-50%, -50%);
+            display: flex; align-items: center; justify-content: center;
         }
 
-        .shake { animation: shake 0.1s infinite; }
-        @keyframes shake { 0% {transform:translate(2px,2px)} 50% {transform:translate(-2px,-2px)} }
+        .ch-box { border: 2px solid #fff; width: 100%; height: 100%; }
+        .ch-circle { border: 2px solid #fff; border-radius: 50%; width: 100%; height: 100%; }
+        .ch-dot { background: #ff0055; width: 6px; height: 6px; border-radius: 50%; }
+        .ch-plus::before { content: '+'; color: #fff; font-size: 24px; }
 
-        .exposed-img { width: 200px; height: 120px; border: 2px solid #fff; margin: 10px; background: #111; }
+        .shake { animation: shake 0.12s infinite; }
+        @keyframes shake { 0%{transform:translate(3px,3px)} 50%{transform:translate(-3px,-3px)} }
     </style>
 </head>
 <body>
 
     <div id="crt"></div>
-    <div id="crosshair"></div>
+    <div id="crosshair"><div id="ch-style" class="ch-box"></div></div>
 
     <div id="main-menu" class="menu">
-        <h1 style="color: #00f2ff; font-size: 30px;">16-BYTES</h1>
-        <div id="tutorial-box">
-            <p style="font-size: 10px; line-height: 1.6; color: #aaa;">
-                "Welcome, Operator. Our 1994 mainframe is haunted by 'The Mold'. 
-                It eats our fonts and corrupts the memory."
-            </p>
-            <div style="display:flex; justify-content:center;">
-                <div class="exposed-img" style="background: radial-gradient(circle, #004400 0%, #000 70%);">
-                   <p style="font-size:7px; margin-top:40px;">KILL THE ROOTS (WHITE PULSE)</p>
-                </div>
-                <div class="exposed-img" style="background: linear-gradient(45deg, #111, #222);">
-                   <p style="font-size:7px; margin-top:40px;">HARVEST FLOATING DATA</p>
-                </div>
+        <h1 style="color: #00f2ff; font-size: 40px; margin-bottom: 10px;">16-BYTES</h1>
+        
+        <div id="home-tutorial">
+            <h2 style="font-size: 12px; color: #ff0055;">OPERATOR MANUAL v1.0</h2>
+            <div style="text-align: left; font-size: 8px; line-height: 1.8; color: #ddd;">
+                > SYSTEM: 1994 "BEHEMOTH" MAINFRAME<br>
+                > THREAT: THE BINARY MOLD (SQUARISH GROWTHS)<br>
+                > TASK 1: <span style="color:#fff">CLICK THE WHITE PULSING ROOTS</span> TO ERASE BRANCHES.<br>
+                > TASK 2: <span style="color:#fff">COLLECT FLOATING WORDS</span> FOR BOUNTY BYTES.<br>
+                > WARNING: GRAVITY IS MALFUNCTIONING. IT WILL SHIFT.<br>
+                > SHOP: PRESS [P] OR [ESC] TO UPGRADE TOOLS.
             </div>
-            <p style="font-size: 9px; color: #00f2ff;">
-                CLICK THE ROOTS TO KILL THE BRANCHES.<br>
-                CLICK WORDS TO EARN BYTES.<br>
-                WATCH THE GRAVITY SWAPS!
-            </p>
         </div>
-        <button class="btn" onclick="initGame()">[ INITIALIZE SYSTEM ]</button>
+
+        <button class="btn" onclick="initGame()" style="font-size: 16px; padding: 20px;">[ BOOT SYSTEM ]</button>
     </div>
 
     <div id="pause-menu" class="menu" style="display:none;">
-        <h2 style="color:#ff0055">SYSTEM_IDLE</h2>
-        <div id="shop-list" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <h2 style="color:#00f2ff">UPGRADE_TERMINAL</h2>
+        <p style="color:yellow">BYTES: <span id="shop-bytes">0</span></p>
+        
+        <h3 style="font-size:10px;">CROSSHAIR SHOP (50B EACH)</h3>
+        <div id="ch-shop" style="display:flex; gap:10px; margin-bottom: 30px;">
+            <button class="btn" onclick="buyCH('box')">SQUARE</button>
+            <button class="btn" onclick="buyCH('circle')">CIRCLE</button>
+            <button class="btn" onclick="buyCH('plus')">CROSS</button>
+            <button class="btn" onclick="buyCH('dot')">LASER</button>
+        </div>
+
+        <h3 style="font-size:10px;">SYSTEM THEMES</h3>
+        <div id="theme-shop" style="display:flex; gap:10px;">
             </div>
-        <button class="btn" onclick="togglePause()">RESUME</button>
+        <button class="btn" onclick="togglePause()" style="margin-top: 30px;">RESUME</button>
     </div>
 
     <div id="ui-bar">
-        <div>BYTES: <span id="byte-count">0</span></div>
-        <div id="grav-ui">GRAVITY: DOWN</div>
-        <div>STABILITY: <span id="hp">100</span>%</div>
+        <div>B: <span id="byte-count">0</span></div>
+        <div id="grav-ui" style="color:#ff0055">GRAVITY: DOWN</div>
+        <div>HP: <span id="hp">100</span>%</div>
     </div>
 
     <canvas id="gameCanvas"></canvas>
@@ -106,75 +116,75 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const crosshair = document.getElementById('crosshair');
+    const chStyle = document.getElementById('ch-style');
+    
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // AUDIO ENGINE (Whimsical 8-bit sounds)
+    // AUDIO
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    function playTone(freq, type, dur) {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + dur);
+    function beep(f, t, d) {
+        const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+        o.type = t; o.frequency.value = f; g.gain.value = 0.1;
+        g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + d);
+        o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + d);
     }
 
-    function playBgNoise() {
-        // Low hum
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'triangle'; osc.frequency.setValueAtTime(60, audioCtx.currentTime);
-        gain.gain.value = 0.02; osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start();
-    }
-
-    // GAME VARS
+    // GAME STATE
     let bytes = 0, health = 100, gameActive = false, isPaused = false;
     let items = [], particles = [], glitchGrid = {};
-    let gravity = { x: 0, y: 0.5 };
+    let gravity = { x: 0, y: 0.3 };
     const GRID = 30;
     const WORDS = ["SPOOKY", "GHOST", "GLITCH", "DUST", "WOBBLE", "PIXEL", "MOLD", "MAGIC"];
     
-    const THEMES = [
-        { name: "CLASSIC", bg: "#050510", font: "#00f2ff", vir: "#111144", cost: 0 },
-        { name: "CANDY", bg: "#1a001a", font: "#ff00ff", vir: "#440044", cost: 300 },
-        { name: "FOREST", bg: "#001000", font: "#00ff00", vir: "#003300", cost: 600 }
-    ];
-    let currentTheme = THEMES[0];
+    let ownedCH = ['box'];
+    let currentTheme = { bg: "#050510", font: "#00f2ff", vir: "#111144" };
 
     window.addEventListener('mousemove', e => {
         crosshair.style.left = e.clientX + 'px';
         crosshair.style.top = e.clientY + 'px';
     });
 
+    window.addEventListener('keydown', e => {
+        if(e.key.toLowerCase() === 'p' || e.key === 'Escape') togglePause();
+    });
+
+    function buyCH(type) {
+        if(ownedCH.includes(type)) {
+            chStyle.className = "ch-" + type;
+            beep(600, 'sine', 0.1);
+        } else if(bytes >= 50) {
+            bytes -= 50;
+            ownedCH.push(type);
+            chStyle.className = "ch-" + type;
+            updateUI();
+            beep(800, 'square', 0.2);
+        }
+    }
+
     function initGame() {
         if(audioCtx.state === 'suspended') audioCtx.resume();
-        playBgNoise();
         document.getElementById('main-menu').style.display = 'none';
         gameActive = true;
-        for(let i=0; i<25; i++) spawnItem();
+        for(let i=0; i<20; i++) spawnItem();
         requestAnimationFrame(loop);
         
-        // Random Whimsical Gravity Swap
         setInterval(() => {
             if(!gameActive || isPaused) return;
-            const dirs = [{x:0.5,y:0,n:"RIGHT"}, {x:-0.5,y:0,n:"LEFT"}, {x:0,y:0.5,n:"DOWN"}, {x:0,y:-0.5,n:"UP"}];
+            const dirs = [{x:0.3,y:0,n:"RIGHT"}, {x:-0.3,y:0,n:"LEFT"}, {x:0,y:0.3,n:"DOWN"}, {x:0,y:-0.3,n:"UP"}];
             const d = dirs[Math.floor(Math.random()*dirs.length)];
             gravity = {x:d.x, y:d.y};
             document.getElementById('grav-ui').innerText = "GRAVITY: " + d.n;
-            playTone(200, 'square', 0.3);
-        }, 10000);
+            beep(200, 'square', 0.2);
+        }, 12000);
     }
 
     function spawnItem() {
         items.push({
             x: Math.random()*canvas.width, y: Math.random()*canvas.height,
-            vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2,
+            vx: (Math.random()-0.5)*1.5, vy: (Math.random()-0.5)*1.5,
             text: WORDS[Math.floor(Math.random()*WORDS.length)],
-            angle: Math.random()*Math.PI,
-            rot: (Math.random()-0.5)*0.02,
+            angle: Math.random()*Math.PI, rot: (Math.random()-0.5)*0.03,
             target: Math.random() > 0.8
         });
     }
@@ -184,64 +194,66 @@
         const gx = Math.floor(e.clientX/GRID), gy = Math.floor(e.clientY/GRID);
         const key = `${gx},${gy}`;
 
+        document.body.classList.add('shake');
+        setTimeout(() => document.body.classList.remove('shake'), 80);
+
         if(glitchGrid[key]) {
             if(glitchGrid[key].root) {
-                glitchGrid = {}; bytes += 100;
-                playTone(440, 'sine', 0.5);
+                glitchGrid = {}; bytes += 100; beep(400, 'triangle', 0.4);
             } else {
-                delete glitchGrid[key]; bytes += 5;
-                playTone(150, 'sawtooth', 0.1);
+                delete glitchGrid[key]; bytes += 5; beep(100, 'sawtooth', 0.05);
             }
-            spawnExplosion(e.clientX, e.clientY);
-            return;
+            spawnExp(e.clientX, e.clientY);
+            updateUI(); return;
         }
 
         items.forEach((item, i) => {
-            if(Math.hypot(e.clientX-item.x, e.clientY-item.y) < 40) {
-                bytes += item.target ? 50 : 10;
-                playTone(800, 'square', 0.1);
-                spawnExplosion(item.x, item.y);
-                items.splice(i, 1);
-                spawnItem();
+            if(Math.hypot(e.clientX-item.x, e.clientY-item.y) < 45) {
+                bytes += item.target ? 60 : 15;
+                beep(900, 'square', 0.1);
+                spawnExp(item.x, item.y);
+                items.splice(i, 1); spawnItem();
             }
         });
-        document.getElementById('byte-count').innerText = bytes;
+        updateUI();
     });
 
-    function spawnExplosion(x, y) {
-        document.body.classList.add('shake');
-        setTimeout(() => document.body.classList.remove('shake'), 100);
-        for(let i=0; i<10; i++) {
+    function spawnExp(x, y) {
+        for(let i=0; i<12; i++) {
             particles.push({
-                x, y, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10,
+                x, y, vx: (Math.random()-0.5)*12, vy: (Math.random()-0.5)*12,
                 life: 1.0
             });
         }
     }
 
     function togglePause() {
+        if(!gameActive) return;
         isPaused = !isPaused;
         document.getElementById('pause-menu').style.display = isPaused ? 'flex' : 'none';
+        document.getElementById('shop-bytes').innerText = bytes;
+    }
+
+    function updateUI() {
+        document.getElementById('byte-count').innerText = bytes;
+        document.getElementById('hp').innerText = Math.max(0, Math.ceil(health));
     }
 
     function loop() {
         if(gameActive && !isPaused) {
-            update();
-            draw();
+            update(); draw();
         }
         requestAnimationFrame(loop);
     }
 
     function update() {
-        // Virus Spawning
-        if(Math.random() < 0.01) {
+        if(Math.random() < 0.008) {
             const k = `${Math.floor(Math.random()*canvas.width/GRID)},${Math.floor(Math.random()*canvas.height/GRID)}`;
             glitchGrid[k] = glitchGrid[k] || { root: true, pulse: 0 };
         }
 
-        // Spread logic
         Object.keys(glitchGrid).forEach(k => {
-            if(Math.random() < 0.005) {
+            if(Math.random() < 0.004) {
                 const [x,y] = k.split(',').map(Number);
                 const n = [[0,1],[0,-1],[1,0],[-1,0]][Math.floor(Math.random()*4)];
                 glitchGrid[`${x+n[0]},${y+n[1]}`] = glitchGrid[`${x+n[0]},${y+n[1]}`] || { root: false };
@@ -249,53 +261,44 @@
         });
 
         items.forEach(item => {
-            item.vx += gravity.x * 0.05; item.vy += gravity.y * 0.05;
-            item.x += item.vx; item.y += item.vy;
-            item.angle += item.rot;
-            if(item.x < -50) item.x = canvas.width+50;
-            if(item.x > canvas.width+50) item.x = -50;
-            if(item.y < -50) item.y = canvas.height+50;
-            if(item.y > canvas.height+50) item.y = -50;
+            item.vx += gravity.x * 0.02; item.vy += gravity.y * 0.02;
+            item.x += item.vx; item.y += item.vy; item.angle += item.rot;
+            if(item.x < -100) item.x = canvas.width+100;
+            if(item.x > canvas.width+100) item.x = -100;
+            if(item.y < -100) item.y = canvas.height+100;
+            if(item.y > canvas.height+100) item.y = -100;
         });
 
         particles.forEach((p, i) => { 
-            p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.life -= 0.02;
+            p.x += p.vx; p.y += p.vy; p.vy += 0.3; p.life -= 0.02;
             if(p.life <= 0) particles.splice(i, 1);
         });
 
-        health -= (Object.keys(glitchGrid).length * 0.005);
-        document.getElementById('hp').innerText = Math.max(0, Math.ceil(health));
-        if(health <= 0) { alert("TERMINAL CORRUPTED!"); location.reload(); }
+        health -= (Object.keys(glitchGrid).length * 0.006);
+        if(health <= 0) { alert("SYSTEM OVERLOAD! BYTES: " + bytes); location.reload(); }
     }
 
     function draw() {
         ctx.fillStyle = currentTheme.bg;
         ctx.fillRect(0,0,canvas.width,canvas.height);
 
-        // Draw Virus
         Object.keys(glitchGrid).forEach(k => {
             const [gx, gy] = k.split(',').map(Number);
             const n = glitchGrid[k];
             ctx.fillStyle = n.root ? "#fff" : currentTheme.vir;
-            if(n.root) {
-                n.pulse += 0.1; ctx.globalAlpha = 0.5 + Math.sin(n.pulse)*0.5;
-            } else ctx.globalAlpha = 0.7;
+            if(n.root) { n.pulse += 0.15; ctx.globalAlpha = 0.4 + Math.sin(n.pulse)*0.4; }
+            else ctx.globalAlpha = 0.6;
             ctx.fillRect(gx*GRID, gy*GRID, GRID-2, GRID-2);
             ctx.globalAlpha = 1;
         });
 
-        // Draw Items
         items.forEach(item => {
-            ctx.save();
-            ctx.translate(item.x, item.y);
-            ctx.rotate(item.angle);
-            ctx.font = '12px "Press Start 2P"';
+            ctx.save(); ctx.translate(item.x, item.y); ctx.rotate(item.angle);
+            ctx.font = '10px "Press Start 2P"';
             ctx.fillStyle = item.target ? "#fff" : currentTheme.font;
-            ctx.fillText(item.text, 0, 0);
-            ctx.restore();
+            ctx.fillText(item.text, 0, 0); ctx.restore();
         });
 
-        // Draw Particles
         particles.forEach(p => {
             ctx.fillStyle = `rgba(255,0,0,${p.life})`;
             ctx.fillRect(p.x, p.y, 4, 4);
