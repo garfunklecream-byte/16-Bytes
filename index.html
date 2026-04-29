@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>16-BYTES // SYSTEM DEFENSE</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        body { 
+            margin: 0; background: #050510; color: #00f2ff; 
+            font-family: 'Press Start 2P', cursive; overflow: hidden;
+            text-transform: uppercase;
+        }
+
+        /* CRT Screen Flicker */
+        .crt::after {
+            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+            background: rgba(18, 16, 16, 0.1); opacity: 0; z-index: 2;
+            pointer-events: none; animation: flicker 0.15s infinite;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.1; } 50% { opacity: 0.2; } 100% { opacity: 0.1; }
+        }
+
+        /* Screen Shake for Damage */
+        .shake { animation: shake 0.2s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+
+        canvas { display: block; image-rendering: pixelated; }
+
+        #ui { 
+            position: absolute; top: 20px; left: 20px; z-index: 20; 
+            border: 2px solid #00f2ff; padding: 15px; background: rgba(0,0,0,0.8);
+            box-shadow: 4px 4px 0px #ff0055;
+        }
+
+        .label { font-size: 8px; color: #ff0055; margin-bottom: 5px; }
+        #font-name { color: #fff; font-size: 18px; display: block; margin-top: 5px; }
+
+        #game-over { 
+            display: none; position: absolute; top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); text-align: center; 
+            background: #000; padding: 40px; border: 4px solid #ff0055; z-index: 100;
+        }
+
+        button { 
+            font-family: 'Press Start 2P'; padding: 15px; cursor: pointer; 
+            background: #00f2ff; color: #000; border: none; margin-top: 20px;
+        }
+        button:hover { background: #ff0055; color: #fff; }
+    </style>
+</head>
+<body class="crt">
+
+    <div id="ui">
+        <div class="label">INTEGRITY</div>
+        <div id="health">100%</div>
+        <hr border="1" color="#222">
+        <div class="label">TARGET_BYTE</div>
+        <span id="font-name">...</span>
+        <div class="label" style="margin-top:15px;">REMAINING</div>
+        <div id="count">0</div>
+    </div>
+
+    <div id="game-over">
+        <h1 style="color: #ff0055;">FATAL ERROR</h1>
+        <p id="reason" style="font-size: 10px; line-height: 2;"></p>
+        <button onclick="location.reload()">RETRY.SYS</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const FONTS = [
+        { name: 'MODERN', style: 'italic 30px sans-serif' },
+        { name: 'CLASSIC', style: '30px serif' },
+        { name: 'CODE', style: '30px monospace' },
+        { name: 'SCRIPT', style: '30px cursive' }
+    ];
+
+    let targetFont = FONTS[Math.floor(Math.random() * FONTS.length)];
+    let items = [];
+    let viruses = [];
+    let health = 100;
+    let gameActive = true;
+
+    function init() {
+        document.getElementById('font-name').innerText = targetFont.name;
+        document.getElementById('font-name').style.fontFamily = targetFont.style.split(' ')[1];
+        
+        for(let i=0; i<12; i++) items.push(createItem());
+        
+        let spawnRate = 2000;
+        const spawner = () => {
+            if(gameActive) {
+                createVirus();
+                spawnRate = Math.max(600, spawnRate - 100);
+                setTimeout(spawner, spawnRate);
+            }
+        };
+        spawner();
+        requestAnimationFrame(gameLoop);
+    }
+
+    function createItem() {
+        const f = FONTS[Math.floor(Math.random() * FONTS.length)];
+        return {
+            x: 150 + Math.random() * (canvas.width - 300),
+            y: 150 + Math.random() * (canvas.height - 300),
+            font: f,
+            text: "16-BYTES",
+            isTarget: f.name === targetFont.name
+        };
+    }
+
+    function createVirus() {
+        viruses.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: 30,
+            vx: (Math.random() - 0.5) * 6,
+            vy: (Math.random() - 0.5) * 6,
+            color: Math.random() > 0.5 ? '#ff0055' : '#ff0000'
+        });
+    }
+
+    function triggerShake() {
+        document.body.classList.add('shake');
+        setTimeout(() => document.body.classList.remove('shake'), 200);
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+        if(!gameActive) return;
+
+        let hitVirus = false;
+        for(let i = viruses.length - 1; i >= 0; i--) {
+            let v = viruses[i];
+            if(e.clientX > v.x && e.clientX < v.x + v.size && e.clientY > v.y && e.clientY < v.y + v.size) {
+                viruses.splice(i, 1);
+                hitVirus = true;
+                break;
+            }
+        }
+
+        if(!hitVirus) {
+            let hitFont = false;
+            items.forEach((f, index) => {
+                if(e.clientX > f.x && e.clientX < f.x + 100 && e.clientY > f.y - 30 && e.clientY < f.y) {
+                    if(f.isTarget) {
+                        items.splice(index, 1);
+                        hitFont = true;
+                        if(items.filter(it => it.isTarget).length === 0) {
+                            gameActive = false;
+                            alert("SECTOR DEFRAGGED. SYSTEM STABLE.");
+                            location.reload();
+                        }
+                    } else {
+                        health -= 15;
+                        triggerShake();
+                    }
+                }
+            });
+            if(!hitFont) { /* Missed click */ }
+        }
+    });
+
+    function gameLoop() {
+        if(!gameActive) return;
+
+        ctx.fillStyle = '#050510';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw Ambient "Data" Grid
+        ctx.strokeStyle = '#111122';
+        for(let i=0; i<canvas.width; i+=50) {
+            ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,canvas.height); ctx.stroke();
+        }
+
+        // Draw Fonts
+        items.forEach(f => {
+            ctx.font = f.font.style;
+            ctx.fillStyle = f.isTarget ? '#ffffff' : '#444466';
+            ctx.fillText(f.text, f.x, f.y);
+        });
+
+        // Draw Viruses
+        viruses.forEach((v) => {
+            v.x += v.vx; v.y += v.vy;
+            if(v.x < 0 || v.x > canvas.width - v.size) v.vx *= -1;
+            if(v.y < 0 || v.y > canvas.height - v.size) v.vy *= -1;
+
+            ctx.fillStyle = v.color;
+            ctx.fillRect(v.x, v.y, v.size, v.size);
+            // Glitch effect: small trailing squares
+            if(Math.random() > 0.8) ctx.fillRect(v.x-10, v.y+5, 5, 5);
+
+            // Collision with targets
+            items.forEach(f => {
+                if(f.isTarget && v.x < f.x + 100 && v.x + v.size > f.x && v.y < f.y && v.y + v.size > f.y - 30) {
+                    health -= 0.3;
+                    if(Math.random() > 0.95) triggerShake();
+                }
+            });
+        });
+
+        document.getElementById('health').innerText = Math.ceil(health) + "%";
+        document.getElementById('health').style.color = health < 30 ? "#ff0055" : "#00f2ff";
+        document.getElementById('count').innerText = items.filter(i => i.isTarget).length;
+
+        if(health <= 0) {
+            gameActive = false;
+            document.getElementById('game-over').style.display = 'block';
+            document.getElementById('reason').innerText = "MEMORY LEAK DETECTED. FONT_DATA_CORRUPT. TRACEBACK: 16-BYTES";
+        }
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    init();
+</script>
+</body>
+</html>
