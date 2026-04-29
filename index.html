@@ -2,22 +2,21 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>16-BYTES // BOUNTY HUNTER</title>
+    <title>16-BYTES // BINARY MOLD</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
         body { 
-            margin: 0; background: #050510; color: #00f2ff; 
+            margin: 0; background: #020208; color: #00f2ff; 
             font-family: 'Press Start 2P', cursive; overflow: hidden;
-            cursor: none; /* Hide default mouse for sniper crosshair */
+            cursor: none;
         }
 
-        /* 16-BIT GRID OVERLAY */
         #grid {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background-size: 20px 20px;
-            background-image: linear-gradient(to right, rgba(0, 242, 255, 0.05) 1px, transparent 1px),
-                              linear-gradient(to bottom, rgba(0, 242, 255, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+            background-image: linear-gradient(to right, rgba(0, 242, 255, 0.03) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(0, 242, 255, 0.03) 1px, transparent 1px);
             pointer-events: none; z-index: 5;
         }
 
@@ -25,35 +24,23 @@
 
         #ui-bar {
             position: absolute; top: 0; left: 0; width: 100%; height: 60px;
-            background: rgba(0,0,0,0.9); border-bottom: 3px solid #ff0055;
+            background: #000; border-bottom: 2px solid #ff0055;
             display: flex; align-items: center; justify-content: space-around; z-index: 10;
             font-size: 10px;
         }
 
-        #shop {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 10px; z-index: 10;
-        }
-
-        .shop-btn {
-            background: #000; border: 2px solid #00f2ff; color: #00f2ff;
-            padding: 10px; cursor: pointer; font-family: 'Press Start 2P'; font-size: 8px;
-        }
-        .shop-btn:hover { background: #ff0055; color: #fff; }
-
         #crosshair {
-            position: fixed; width: 40px; height: 40px;
-            border: 2px solid #fff; border-radius: 50%;
-            pointer-events: none; z-index: 100; transform: translate(-50%, -50%);
+            position: fixed; width: 30px; height: 30px;
+            border: 2px solid #fff; pointer-events: none; z-index: 100; transform: translate(-50%, -50%);
         }
-        #crosshair::before { content: ''; position: absolute; top: 50%; left: -10px; width: 60px; height: 2px; background: #fff; }
-        #crosshair::after { content: ''; position: absolute; left: 50%; top: -10px; width: 2px; height: 60px; background: #fff; }
 
         #game-over { 
             display: none; position: absolute; top: 50%; left: 50%; 
             transform: translate(-50%, -50%); text-align: center; 
             background: #000; padding: 40px; border: 4px solid #ff0055; z-index: 110;
         }
+
+        .timer-warning { color: #555; font-size: 8px; }
     </style>
 </head>
 <body>
@@ -63,18 +50,14 @@
 
     <div id="ui-bar">
         <div>BYTES: <span id="bytes" style="color:yellow">0</span></div>
-        <div>HUNT: <span id="target-name" style="color:#fff">---</span></div>
+        <div id="timer-box" class="timer-warning">SYS_STABLE: <span id="timer">30</span>S</div>
         <div>INTEGRITY: <span id="health">100%</span></div>
     </div>
 
-    <div id="shop">
-        <button class="shop-btn" onclick="buyRepair()">[1] REPAIR (50B)</button>
-        <button class="shop-btn" onclick="buyCleanse()">[2] CLEANSE (150B)</button>
-    </div>
-
     <div id="game-over">
-        <h1 style="color: #ff0055;">FATAL ERROR</h1>
-        <button onclick="location.reload()">REBOOT</button>
+        <h1 style="color: #ff0055;">SYSTEM BROKEN</h1>
+        <p id="final-score"></p>
+        <button onclick="location.reload()" style="font-family:'Press Start 2P'; padding:10px; cursor:pointer;">REBOOT</button>
     </div>
 
     <canvas id="gameCanvas"></canvas>
@@ -88,119 +71,142 @@
     canvas.height = window.innerHeight;
 
     const FONTS = [
-        { name: 'SANS', style: '30px sans-serif', val: 5 },
-        { name: 'SERIF', style: '30px serif', val: 5 },
-        { name: 'CODE', style: '30px monospace', val: 15 },
-        { name: 'CURSIVE', style: '30px cursive', val: 25 }
+        { name: 'SANS', style: '24px sans-serif', val: 10 },
+        { name: 'SERIF', style: '24px serif', val: 10 },
+        { name: 'CODE', style: '24px monospace', val: 30 },
+        { name: 'CURSIVE', style: '24px cursive', val: 50 }
     ];
 
     let bytes = 0;
     let health = 100;
-    let target = FONTS[Math.floor(Math.random() * FONTS.length)];
-    let items = [];
-    let viruses = [];
     let gameActive = true;
+    let startTime = Date.now();
+    let virusActive = false;
+    
+    let items = [];
+    let viruses = []; // These are the "Holes"
 
-    // Custom Mouse
     window.addEventListener('mousemove', (e) => {
         crosshair.style.left = e.clientX + 'px';
         crosshair.style.top = e.clientY + 'px';
     });
 
     function createItem() {
-        const f = FONTS[Math.floor(Math.random() * FONTS.length)];
         return {
-            x: 100 + Math.random() * (canvas.width - 200),
-            y: 100 + Math.random() * (canvas.height - 200),
-            font: f,
-            isTarget: f.name === target.name
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            vx: (Math.random() - 0.5) * 2, // Slow movement
+            vy: (Math.random() - 0.5) * 2,
+            font: FONTS[Math.floor(Math.random() * FONTS.length)],
+            isTarget: Math.random() > 0.8
         };
     }
 
-    function createVirus() {
+    function spawnMold() {
         viruses.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            size: 40, // Larger size for easier clicking
-            vx: (Math.random() - 0.5) * 5,
-            vy: (Math.random() - 0.5) * 5
+            x: Math.random() * (canvas.width - 100) + 50,
+            y: Math.random() * (canvas.height - 100) + 50,
+            size: 20,
+            growth: 0.05
         });
-    }
-
-    // Shop Logic
-    function buyRepair() {
-        if(bytes >= 50) { bytes -= 50; health = Math.min(100, health + 30); updateUI(); }
-    }
-    function buyCleanse() {
-        if(bytes >= 150) { bytes -= 150; viruses = []; updateUI(); }
-    }
-
-    function updateUI() {
-        document.getElementById('bytes').innerText = bytes;
-        document.getElementById('health').innerText = Math.ceil(health) + "%";
-        document.getElementById('target-name').innerText = target.name;
     }
 
     canvas.addEventListener('mousedown', (e) => {
         if(!gameActive) return;
 
-        // Hit Detection Logic
-        let hitSomething = false;
-
-        // 1. Kill Viruses (Sniper logic)
+        // 1. Snipe Mold (Holes)
         for(let i = viruses.length - 1; i >= 0; i--) {
             let v = viruses[i];
-            let dist = Math.hypot(e.clientX - (v.x + v.size/2), e.clientY - (v.y + v.size/2));
-            if(dist < 30) { // Radius of sniper shot
+            let dist = Math.hypot(e.clientX - v.x, e.clientY - v.y);
+            if(dist < v.size + 10) {
                 viruses.splice(i, 1);
-                bytes += 10;
-                hitSomething = true;
+                bytes += 25;
+                return;
             }
         }
 
         // 2. Hunt Fonts
         for(let i = items.length - 1; i >= 0; i--) {
             let f = items[i];
-            if(e.clientX > f.x && e.clientX < f.x + 120 && e.clientY > f.y - 30 && e.clientY < f.y) {
-                let reward = f.font.val;
-                if(f.isTarget) reward *= 5; // Target bonus
-                bytes += reward;
+            if(e.clientX > f.x && e.clientX < f.x + 100 && e.clientY > f.y - 20 && e.clientY < f.y + 10) {
+                bytes += f.isTarget ? f.font.val * 3 : f.font.val;
                 items.splice(i, 1);
-                items.push(createItem()); // Replace with new font
-                hitSomething = true;
+                items.push(createItem());
+                break;
             }
         }
         updateUI();
     });
 
+    function updateUI() {
+        document.getElementById('bytes').innerText = bytes;
+        document.getElementById('health').innerText = Math.ceil(health) + "%";
+    }
+
     function gameLoop() {
         if(!gameActive) return;
-        ctx.fillStyle = '#050510';
+        ctx.fillStyle = '#020208';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        let elapsed = Math.floor((Date.now() - startTime) / 1000);
+        let countdown = 30 - elapsed;
+
+        if(countdown > 0) {
+            document.getElementById('timer').innerText = countdown;
+        } else {
+            if(!virusActive) {
+                virusActive = true;
+                document.getElementById('timer-box').innerHTML = "MOLD_DETECTED";
+                document.getElementById('timer-box').style.color = "#ff0055";
+            }
+            // Spread logic
+            if(Math.random() < 0.01 && viruses.length < 20) spawnMold();
+        }
 
         // Draw Fonts
         items.forEach(f => {
+            f.x += f.vx; f.y += f.vy;
+            if(f.x < 0 || f.x > canvas.width) f.vx *= -1;
+            if(f.y < 0 || f.y > canvas.height) f.vy *= -1;
+
             ctx.font = f.font.style;
-            ctx.fillStyle = f.isTarget ? '#fff' : '#00f2ff33'; // Targets are bright
-            ctx.fillText("16-BYTES", f.x, f.y);
+            ctx.fillStyle = f.isTarget ? '#fff' : '#00f2ff44';
+            ctx.fillText("BYTE", f.x, f.y);
         });
 
-        // Draw Viruses
+        // Draw Binary Mold (Holes)
         viruses.forEach((v, i) => {
-            v.x += v.vx; v.y += v.vy;
-            if(v.x < 0 || v.x > canvas.width - v.size) v.vx *= -1;
-            if(v.y < 0 || v.y > canvas.height - v.size) v.vy *= -1;
-
-            ctx.fillStyle = '#ff0055';
-            ctx.fillRect(v.x, v.y, v.size, v.size);
+            v.size += v.growth;
             
-            // Damage check
-            health -= 0.05; 
+            // Draw the "Hole"
+            ctx.beginPath();
+            ctx.arc(v.x, v.y, v.size, 0, Math.PI * 2);
+            ctx.fillStyle = '#000';
+            ctx.fill();
+            ctx.strokeStyle = '#00ff00';
+            ctx.stroke();
+
+            // Draw Binary inside
+            ctx.fillStyle = '#004400';
+            ctx.font = '10px monospace';
+            for(let j=0; j<3; j++) {
+                ctx.fillText(Math.random() > 0.5 ? "1" : "0", v.x - 5 + (j*5), v.y + (j*5) - 5);
+            }
+
+            // Health Drain
+            health -= (v.size / 500);
+
+            // Spread to neighbor
+            if(v.size > 80) {
+                v.size = 40;
+                viruses.push({x: v.x + 50, y: v.y + 50, size: 20, growth: 0.05});
+            }
         });
 
         if(health <= 0) {
             gameActive = false;
             document.getElementById('game-over').style.display = 'block';
+            document.getElementById('final-score').innerText = "HARVESTED: " + bytes + " BYTES";
         }
 
         requestAnimationFrame(gameLoop);
@@ -208,7 +214,6 @@
 
     // Init
     for(let i=0; i<15; i++) items.push(createItem());
-    setInterval(() => { if(gameActive) createVirus(); }, 2000);
     updateUI();
     gameLoop();
 </script>
