@@ -2,66 +2,51 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>16-BYTES // ROOT KILLER</title>
+    <title>16-BYTES // GLITCH HUNTER</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
         :root {
             --pixel-size: 4px;
-            --neon-blue: #00f2ff;
-            --neon-pink: #ff0055;
         }
 
         body { 
-            margin: 0; background: #020208; color: var(--neon-blue); 
-            font-family: 'Press Start 2P', cursive; overflow: hidden;
-            cursor: none;
+            margin: 0; background: #000; overflow: hidden;
+            font-family: 'Press Start 2P', cursive; cursor: none;
         }
 
-        /* PIXELATION GRID OVERLAY */
         #pixel-screen {
             position: fixed; inset: 0;
-            background-image: 
-                linear-gradient(to right, rgba(0,0,0,0.3) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(0,0,0,0.3) 1px, transparent 1px);
-            background-size: var(--pixel-size) var(--pixel-size);
-            pointer-events: none; z-index: 100;
+            background-image: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+                              linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 3px 100%; pointer-events: none; z-index: 100;
         }
 
         canvas { display: block; image-rendering: pixelated; }
 
-        /* MENUS */
-        .overlay-menu {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+        .menu {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95);
             display: flex; flex-direction: column; align-items: center; 
-            justify-content: center; z-index: 200;
+            justify-content: center; z-index: 200; color: #fff;
         }
-
-        #main-menu { z-index: 300; }
-        #pause-menu { display: none; }
-
-        .btn {
-            background: none; border: 3px solid var(--neon-blue);
-            color: var(--neon-blue); padding: 15px 30px; margin: 10px;
-            font-family: 'Press Start 2P'; cursor: pointer; transition: 0.2s;
-        }
-        .btn:hover { background: var(--neon-blue); color: #000; transform: scale(1.1); }
-        .btn.pink { border-color: var(--neon-pink); color: var(--neon-pink); }
-        .btn.pink:hover { background: var(--neon-pink); color: #000; }
-
-        /* SHOP ITEMS */
-        .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
-        .item-card { border: 1px solid #333; padding: 10px; text-align: center; }
 
         #ui-bar {
             position: absolute; top: 0; width: 100%; height: 50px;
             display: flex; align-items: center; justify-content: space-around;
-            background: #000; border-bottom: 2px solid var(--neon-pink); font-size: 10px; z-index: 50;
+            background: rgba(0,0,0,0.8); border-bottom: 2px solid #ff0055; 
+            font-size: 10px; z-index: 50; color: #fff;
         }
 
+        .btn {
+            background: #222; border: 3px solid #fff; color: #fff;
+            padding: 10px 20px; margin: 10px; font-family: 'Press Start 2P';
+            cursor: pointer; font-size: 10px;
+        }
+        .btn:hover { background: #fff; color: #000; }
+
         #crosshair {
-            position: fixed; width: 20px; height: 20px;
-            border: 2px solid #fff; pointer-events: none; z-index: 400; transform: translate(-50%, -50%);
+            position: fixed; width: 24px; height: 24px; border: 2px solid #fff;
+            pointer-events: none; z-index: 400; transform: translate(-50%, -50%);
         }
     </style>
 </head>
@@ -70,31 +55,24 @@
     <div id="pixel-screen"></div>
     <div id="crosshair"></div>
 
-    <div id="main-menu" class="overlay-menu">
-        <h1 style="font-size: 40px; text-shadow: 4px 4px var(--neon-pink);">16-BYTES</h1>
-        <p style="font-size: 10px;">BOOTING SYSTEM...</p>
-        <button class="btn" onclick="startGame()">START_SESSION</button>
+    <div id="main-menu" class="menu">
+        <h1 style="color: #00f2ff;">16-BYTES</h1>
+        <button class="btn" onclick="startGame()">INITIALIZE</button>
     </div>
 
-    <div id="pause-menu" class="overlay-menu">
-        <h2>SYSTEM_PAUSED</h2>
-        <div id="shop-bytes">BYTES: 0</div>
-        <div class="shop-grid">
-            <div class="item-card">
-                <p style="font-size: 8px;">AMBER THEME</p>
-                <button class="btn pink" style="font-size: 8px;" onclick="buySkin('#ffb300')">500 B</button>
-            </div>
-            <div class="item-card">
-                <p style="font-size: 8px;">MATRIX GREEN</p>
-                <button class="btn pink" style="font-size: 8px;" onclick="buySkin('#00ff41')">500 B</button>
-            </div>
+    <div id="pause-menu" class="menu" style="display:none;">
+        <h2>TERMINAL_PAUSED</h2>
+        <div id="shop-bytes" style="color:yellow">BYTES: 0</div>
+        <div style="display:flex; gap:10px; margin:20px;">
+            <button class="btn" onclick="applyTheme('CYBER')">CYBER_BLUE (0B)</button>
+            <button class="btn" onclick="applyTheme('VIRTUAL')">VIRTUAL_RED (500B)</button>
+            <button class="btn" onclick="applyTheme('MATRIX')">MATRIX_GREEN (1000B)</button>
         </div>
         <button class="btn" onclick="togglePause()">RESUME</button>
     </div>
 
     <div id="ui-bar">
-        <div>$ <span id="byte-count">0</span></div>
-        <div id="status">SCANNING...</div>
+        <div>BYTES: <span id="byte-count">0</span></div>
         <div>HP: <span id="hp">100</span>%</div>
     </div>
 
@@ -108,36 +86,36 @@
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    let bytes = 0;
-    let health = 100;
-    let gameRunning = false;
-    let isPaused = false;
-    let startTime;
-    let fontColor = '#00f2ff';
+    // GAME STATE
+    let bytes = 0, health = 100, gameRunning = false, isPaused = false;
+    let particles = [], fonts = [], glitchGrid = {};
+    const GRID_SIZE = 25;
+    const WORDS = ["VOID", "ERROR", "NULL", "ROOT", "DATA", "KERNEL", "TRACE", "BYTE", "INDEX"];
 
-    // GRID CONSTANTS
-    const GRID_SIZE = 20;
-    let glitchGrid = {}; // key: "x,y", value: {isRoot, age, parentKey}
+    // THEMES
+    const THEMES = {
+        CYBER: { bg: '#020208', font: '#00f2ff', virus: '#111144', root: '#00f2ff' },
+        VIRTUAL: { bg: '#100000', font: '#ff0055', virus: '#440011', root: '#ff9900' },
+        MATRIX: { bg: '#000800', font: '#00ff41', virus: '#002200', root: '#ffffff' }
+    };
+    let currentTheme = THEMES.CYBER;
 
-    let fonts = [];
-
-    // MOUSE MOVEMENT
     window.addEventListener('mousemove', e => {
         crosshair.style.left = e.clientX + 'px';
         crosshair.style.top = e.clientY + 'px';
     });
 
-    // KEYBOARD PAUSE
     window.addEventListener('keydown', e => {
         if(e.key === 'p' || e.key === 'Escape') togglePause();
     });
 
-    function startGame() {
-        document.getElementById('main-menu').style.display = 'none';
-        gameRunning = true;
-        startTime = Date.now();
-        for(let i=0; i<15; i++) spawnFont();
-        requestAnimationFrame(gameLoop);
+    function applyTheme(key) {
+        let cost = key === 'VIRTUAL' ? 500 : (key === 'MATRIX' ? 1000 : 0);
+        if(bytes >= cost) {
+            if(cost > 0 && currentTheme !== THEMES[key]) bytes -= cost;
+            currentTheme = THEMES[key];
+            updateUI();
+        }
     }
 
     function togglePause() {
@@ -146,66 +124,59 @@
         document.getElementById('shop-bytes').innerText = `BYTES: ${bytes}`;
     }
 
-    function buySkin(color) {
-        if(bytes >= 500) {
-            bytes -= 500;
-            fontColor = color;
-            document.getElementById('byte-count').innerText = bytes;
+    function spawnParticle(x, y) {
+        for(let i=0; i<8; i++) {
+            particles.push({
+                x, y, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10,
+                life: 1.0, color: '#ff0000'
+            });
         }
     }
 
     function spawnFont() {
         fonts.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            vx: (Math.random() - 0.5) * 1.5,
-            vy: (Math.random() - 0.5) * 1.5,
-            type: Math.random() > 0.8 ? 'TARGET' : 'NORMAL'
+            x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+            vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2,
+            text: WORDS[Math.floor(Math.random()*WORDS.length)],
+            isTarget: Math.random() > 0.8
         });
-    }
-
-    function spawnRoot() {
-        const gx = Math.floor(Math.random() * (canvas.width/GRID_SIZE));
-        const gy = Math.floor(Math.random() * (canvas.height/GRID_SIZE));
-        const key = `${gx},${gy}`;
-        glitchGrid[key] = { isRoot: true, pulse: 0 };
     }
 
     canvas.addEventListener('mousedown', e => {
         if(!gameRunning || isPaused) return;
-
-        const gx = Math.floor(e.clientX / GRID_SIZE);
-        const gy = Math.floor(e.clientY / GRID_SIZE);
+        const gx = Math.floor(e.clientX / GRID_SIZE), gy = Math.floor(e.clientY / GRID_SIZE);
         const key = `${gx},${gy}`;
 
-        // KILL VIRUS
         if(glitchGrid[key]) {
-            if(glitchGrid[key].isRoot) {
-                // Kill entire branch
-                glitchGrid = {}; 
-                bytes += 100;
-            } else {
-                delete glitchGrid[key];
-                bytes += 5;
-            }
-            document.getElementById('byte-count').innerText = bytes;
-            return;
+            if(glitchGrid[key].isRoot) { glitchGrid = {}; bytes += 150; }
+            else { delete glitchGrid[key]; bytes += 5; }
+            spawnParticle(e.clientX, e.clientY);
+            updateUI(); return;
         }
 
-        // HUNT FONTS
         fonts.forEach((f, i) => {
-            if(Math.hypot(e.clientX - f.x, e.clientY - f.y) < 30) {
-                bytes += (f.type === 'TARGET' ? 50 : 10);
-                fonts.splice(i, 1);
-                spawnFont();
-                document.getElementById('byte-count').innerText = bytes;
+            if(Math.hypot(e.clientX - f.x, e.clientY - f.y) < 40) {
+                bytes += f.isTarget ? 100 : 20;
+                spawnParticle(f.x, f.y);
+                fonts.splice(i, 1); spawnFont(); updateUI();
             }
         });
     });
 
+    function startGame() {
+        document.getElementById('main-menu').style.display = 'none';
+        gameRunning = true;
+        for(let i=0; i<12; i++) spawnFont();
+        requestAnimationFrame(gameLoop);
+    }
+
+    function updateUI() {
+        document.getElementById('byte-count').innerText = bytes;
+        document.getElementById('hp').innerText = Math.max(0, Math.ceil(health));
+    }
+
     function gameLoop() {
-        if(!gameRunning) return;
-        if(!isPaused) {
+        if(gameRunning && !isPaused) {
             update();
             draw();
         }
@@ -213,66 +184,60 @@
     }
 
     function update() {
-        let now = Date.now();
-        let elapsed = (now - startTime) / 1000;
+        // Virus Spawning
+        if(Math.random() < 0.005) {
+            const k = `${Math.floor(Math.random()*canvas.width/GRID_SIZE)},${Math.floor(Math.random()*canvas.height/GRID_SIZE)}`;
+            if(!glitchGrid[k]) glitchGrid[k] = { isRoot: true, p: 0 };
+        }
 
-        // Start viruses after 30s
-        if(elapsed > 10 && Math.random() < 0.01) spawnRoot();
-
-        // Spread Glitch
-        Object.keys(glitchGrid).forEach(key => {
-            if(Math.random() < 0.005) {
-                const [x, y] = key.split(',').map(Number);
-                const neighbors = [[0,1],[0,-1],[1,0],[-1,0]];
-                const dir = neighbors[Math.floor(Math.random()*4)];
-                const newKey = `${x+dir[0]},${y+dir[1]}`;
-                if(!glitchGrid[newKey]) glitchGrid[newKey] = { isRoot: false };
+        // Spread logic
+        Object.keys(glitchGrid).forEach(k => {
+            if(Math.random() < 0.008) {
+                const [x, y] = k.split(',').map(Number);
+                const n = [[0,1],[0,-1],[1,0],[-1,0]][Math.floor(Math.random()*4)];
+                glitchGrid[`${x+n[0]},${y+n[1]}`] = glitchGrid[`${x+n[0]},${y+n[1]}`] || { isRoot: false };
             }
         });
 
-        // Health drain
-        health -= (Object.keys(glitchGrid).length * 0.005);
-        document.getElementById('hp').innerText = Math.max(0, Math.ceil(health));
-
-        if(health <= 0) gameRunning = false; // Add Game Over logic here
-
-        // Move fonts
         fonts.forEach(f => {
             f.x += f.vx; f.y += f.vy;
-            if(f.x < 0 || f.x > canvas.width) f.vx *= -1;
-            if(f.y < 0 || f.y > canvas.height) f.vy *= -1;
+            if(f.x<0 || f.x>canvas.width) f.vx*=-1;
+            if(f.y<0 || f.y>canvas.height) f.vy*=-1;
         });
+
+        particles.forEach((p, i) => { p.x += p.vx; p.y += p.vy; p.life -= 0.02; if(p.life<=0) particles.splice(i, 1); });
+        health -= (Object.keys(glitchGrid).length * 0.005);
+        if(health <= 0) { gameRunning = false; alert("SYSTEM TERMINATED"); location.reload(); }
     }
 
     function draw() {
-        ctx.fillStyle = '#020208';
+        ctx.fillStyle = currentTheme.bg;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Draw Glitch Grid
-        Object.keys(glitchGrid).forEach(key => {
-            const [gx, gy] = key.split(',').map(Number);
-            const node = glitchGrid[key];
-            
-            if(node.isRoot) {
-                node.pulse += 0.1;
-                const p = Math.sin(node.pulse) * 50 + 200;
-                ctx.fillStyle = `rgb(0, ${p}, 0)`;
+        Object.keys(glitchGrid).forEach(k => {
+            const [gx, gy] = k.split(',').map(Number);
+            const n = glitchGrid[k];
+            if(n.isRoot) {
+                n.p += 0.2;
+                ctx.fillStyle = currentTheme.root;
+                ctx.globalAlpha = 0.5 + Math.sin(n.p)*0.5;
             } else {
-                ctx.fillStyle = '#002200';
+                ctx.fillStyle = currentTheme.virus;
+                ctx.globalAlpha = 0.6;
             }
-            ctx.fillRect(gx * GRID_SIZE, gy * GRID_SIZE, GRID_SIZE-1, GRID_SIZE-1);
-            
-            // Draw 1s and 0s
-            ctx.fillStyle = '#00ff00';
-            ctx.font = '8px monospace';
-            ctx.fillText(Math.random() > 0.5 ? "1" : "0", gx * GRID_SIZE + 5, gy * GRID_SIZE + 15);
+            ctx.fillRect(gx*GRID_SIZE, gy*GRID_SIZE, GRID_SIZE-2, GRID_SIZE-2);
+            ctx.globalAlpha = 1;
         });
 
-        // Draw Fonts
         fonts.forEach(f => {
-            ctx.font = '20px serif';
-            ctx.fillStyle = f.type === 'TARGET' ? '#fff' : fontColor;
-            ctx.fillText("BYTE", f.x, f.y);
+            ctx.font = '16px "Press Start 2P"';
+            ctx.fillStyle = f.isTarget ? '#fff' : currentTheme.font;
+            ctx.fillText(f.text, f.x, f.y);
+        });
+
+        particles.forEach(p => {
+            ctx.fillStyle = `rgba(255, 0, 0, ${p.life})`;
+            ctx.fillRect(p.x, p.y, 6, 6);
         });
     }
 </script>
