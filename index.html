@@ -2,76 +2,79 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>16-BYTES // SYSTEM DEFENSE</title>
+    <title>16-BYTES // BOUNTY HUNTER</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
         body { 
             margin: 0; background: #050510; color: #00f2ff; 
             font-family: 'Press Start 2P', cursive; overflow: hidden;
-            text-transform: uppercase;
+            cursor: none; /* Hide default mouse for sniper crosshair */
         }
 
-        /* CRT Screen Flicker */
-        .crt::after {
-            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
-            background: rgba(18, 16, 16, 0.1); opacity: 0; z-index: 2;
-            pointer-events: none; animation: flicker 0.15s infinite;
-        }
-
-        @keyframes flicker {
-            0% { opacity: 0.1; } 50% { opacity: 0.2; } 100% { opacity: 0.1; }
-        }
-
-        /* Screen Shake for Damage */
-        .shake { animation: shake 0.2s cubic-bezier(.36,.07,.19,.97) both; }
-        @keyframes shake {
-            10%, 90% { transform: translate3d(-2px, 0, 0); }
-            20%, 80% { transform: translate3d(4px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
-            40%, 60% { transform: translate3d(6px, 0, 0); }
+        /* 16-BIT GRID OVERLAY */
+        #grid {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-size: 20px 20px;
+            background-image: linear-gradient(to right, rgba(0, 242, 255, 0.05) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(0, 242, 255, 0.05) 1px, transparent 1px);
+            pointer-events: none; z-index: 5;
         }
 
         canvas { display: block; image-rendering: pixelated; }
 
-        #ui { 
-            position: absolute; top: 20px; left: 20px; z-index: 20; 
-            border: 2px solid #00f2ff; padding: 15px; background: rgba(0,0,0,0.8);
-            box-shadow: 4px 4px 0px #ff0055;
+        #ui-bar {
+            position: absolute; top: 0; left: 0; width: 100%; height: 60px;
+            background: rgba(0,0,0,0.9); border-bottom: 3px solid #ff0055;
+            display: flex; align-items: center; justify-content: space-around; z-index: 10;
+            font-size: 10px;
         }
 
-        .label { font-size: 8px; color: #ff0055; margin-bottom: 5px; }
-        #font-name { color: #fff; font-size: 18px; display: block; margin-top: 5px; }
+        #shop {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 10px; z-index: 10;
+        }
+
+        .shop-btn {
+            background: #000; border: 2px solid #00f2ff; color: #00f2ff;
+            padding: 10px; cursor: pointer; font-family: 'Press Start 2P'; font-size: 8px;
+        }
+        .shop-btn:hover { background: #ff0055; color: #fff; }
+
+        #crosshair {
+            position: fixed; width: 40px; height: 40px;
+            border: 2px solid #fff; border-radius: 50%;
+            pointer-events: none; z-index: 100; transform: translate(-50%, -50%);
+        }
+        #crosshair::before { content: ''; position: absolute; top: 50%; left: -10px; width: 60px; height: 2px; background: #fff; }
+        #crosshair::after { content: ''; position: absolute; left: 50%; top: -10px; width: 2px; height: 60px; background: #fff; }
 
         #game-over { 
             display: none; position: absolute; top: 50%; left: 50%; 
             transform: translate(-50%, -50%); text-align: center; 
-            background: #000; padding: 40px; border: 4px solid #ff0055; z-index: 100;
+            background: #000; padding: 40px; border: 4px solid #ff0055; z-index: 110;
         }
-
-        button { 
-            font-family: 'Press Start 2P'; padding: 15px; cursor: pointer; 
-            background: #00f2ff; color: #000; border: none; margin-top: 20px;
-        }
-        button:hover { background: #ff0055; color: #fff; }
     </style>
 </head>
-<body class="crt">
+<body>
 
-    <div id="ui">
-        <div class="label">INTEGRITY</div>
-        <div id="health">100%</div>
-        <hr border="1" color="#222">
-        <div class="label">TARGET_BYTE</div>
-        <span id="font-name">...</span>
-        <div class="label" style="margin-top:15px;">REMAINING</div>
-        <div id="count">0</div>
+    <div id="grid"></div>
+    <div id="crosshair"></div>
+
+    <div id="ui-bar">
+        <div>BYTES: <span id="bytes" style="color:yellow">0</span></div>
+        <div>HUNT: <span id="target-name" style="color:#fff">---</span></div>
+        <div>INTEGRITY: <span id="health">100%</span></div>
+    </div>
+
+    <div id="shop">
+        <button class="shop-btn" onclick="buyRepair()">[1] REPAIR (50B)</button>
+        <button class="shop-btn" onclick="buyCleanse()">[2] CLEANSE (150B)</button>
     </div>
 
     <div id="game-over">
         <h1 style="color: #ff0055;">FATAL ERROR</h1>
-        <p id="reason" style="font-size: 10px; line-height: 2;"></p>
-        <button onclick="location.reload()">RETRY.SYS</button>
+        <button onclick="location.reload()">REBOOT</button>
     </div>
 
     <canvas id="gameCanvas"></canvas>
@@ -79,49 +82,38 @@
 <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+    const crosshair = document.getElementById('crosshair');
     
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
     const FONTS = [
-        { name: 'MODERN', style: 'italic 30px sans-serif' },
-        { name: 'CLASSIC', style: '30px serif' },
-        { name: 'CODE', style: '30px monospace' },
-        { name: 'SCRIPT', style: '30px cursive' }
+        { name: 'SANS', style: '30px sans-serif', val: 5 },
+        { name: 'SERIF', style: '30px serif', val: 5 },
+        { name: 'CODE', style: '30px monospace', val: 15 },
+        { name: 'CURSIVE', style: '30px cursive', val: 25 }
     ];
 
-    let targetFont = FONTS[Math.floor(Math.random() * FONTS.length)];
+    let bytes = 0;
+    let health = 100;
+    let target = FONTS[Math.floor(Math.random() * FONTS.length)];
     let items = [];
     let viruses = [];
-    let health = 100;
     let gameActive = true;
 
-    function init() {
-        document.getElementById('font-name').innerText = targetFont.name;
-        document.getElementById('font-name').style.fontFamily = targetFont.style.split(' ')[1];
-        
-        for(let i=0; i<12; i++) items.push(createItem());
-        
-        let spawnRate = 2000;
-        const spawner = () => {
-            if(gameActive) {
-                createVirus();
-                spawnRate = Math.max(600, spawnRate - 100);
-                setTimeout(spawner, spawnRate);
-            }
-        };
-        spawner();
-        requestAnimationFrame(gameLoop);
-    }
+    // Custom Mouse
+    window.addEventListener('mousemove', (e) => {
+        crosshair.style.left = e.clientX + 'px';
+        crosshair.style.top = e.clientY + 'px';
+    });
 
     function createItem() {
         const f = FONTS[Math.floor(Math.random() * FONTS.length)];
         return {
-            x: 150 + Math.random() * (canvas.width - 300),
-            y: 150 + Math.random() * (canvas.height - 300),
+            x: 100 + Math.random() * (canvas.width - 200),
+            y: 100 + Math.random() * (canvas.height - 200),
             font: f,
-            text: "16-BYTES",
-            isTarget: f.name === targetFont.name
+            isTarget: f.name === target.name
         };
     }
 
@@ -129,106 +121,96 @@
         viruses.push({
             x: Math.random() * canvas.width,
             y: Math.random() * canvas.height,
-            size: 30,
-            vx: (Math.random() - 0.5) * 6,
-            vy: (Math.random() - 0.5) * 6,
-            color: Math.random() > 0.5 ? '#ff0055' : '#ff0000'
+            size: 40, // Larger size for easier clicking
+            vx: (Math.random() - 0.5) * 5,
+            vy: (Math.random() - 0.5) * 5
         });
     }
 
-    function triggerShake() {
-        document.body.classList.add('shake');
-        setTimeout(() => document.body.classList.remove('shake'), 200);
+    // Shop Logic
+    function buyRepair() {
+        if(bytes >= 50) { bytes -= 50; health = Math.min(100, health + 30); updateUI(); }
+    }
+    function buyCleanse() {
+        if(bytes >= 150) { bytes -= 150; viruses = []; updateUI(); }
+    }
+
+    function updateUI() {
+        document.getElementById('bytes').innerText = bytes;
+        document.getElementById('health').innerText = Math.ceil(health) + "%";
+        document.getElementById('target-name').innerText = target.name;
     }
 
     canvas.addEventListener('mousedown', (e) => {
         if(!gameActive) return;
 
-        let hitVirus = false;
+        // Hit Detection Logic
+        let hitSomething = false;
+
+        // 1. Kill Viruses (Sniper logic)
         for(let i = viruses.length - 1; i >= 0; i--) {
             let v = viruses[i];
-            if(e.clientX > v.x && e.clientX < v.x + v.size && e.clientY > v.y && e.clientY < v.y + v.size) {
+            let dist = Math.hypot(e.clientX - (v.x + v.size/2), e.clientY - (v.y + v.size/2));
+            if(dist < 30) { // Radius of sniper shot
                 viruses.splice(i, 1);
-                hitVirus = true;
-                break;
+                bytes += 10;
+                hitSomething = true;
             }
         }
 
-        if(!hitVirus) {
-            let hitFont = false;
-            items.forEach((f, index) => {
-                if(e.clientX > f.x && e.clientX < f.x + 100 && e.clientY > f.y - 30 && e.clientY < f.y) {
-                    if(f.isTarget) {
-                        items.splice(index, 1);
-                        hitFont = true;
-                        if(items.filter(it => it.isTarget).length === 0) {
-                            gameActive = false;
-                            alert("SECTOR DEFRAGGED. SYSTEM STABLE.");
-                            location.reload();
-                        }
-                    } else {
-                        health -= 15;
-                        triggerShake();
-                    }
-                }
-            });
-            if(!hitFont) { /* Missed click */ }
+        // 2. Hunt Fonts
+        for(let i = items.length - 1; i >= 0; i--) {
+            let f = items[i];
+            if(e.clientX > f.x && e.clientX < f.x + 120 && e.clientY > f.y - 30 && e.clientY < f.y) {
+                let reward = f.font.val;
+                if(f.isTarget) reward *= 5; // Target bonus
+                bytes += reward;
+                items.splice(i, 1);
+                items.push(createItem()); // Replace with new font
+                hitSomething = true;
+            }
         }
+        updateUI();
     });
 
     function gameLoop() {
         if(!gameActive) return;
-
         ctx.fillStyle = '#050510';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Draw Ambient "Data" Grid
-        ctx.strokeStyle = '#111122';
-        for(let i=0; i<canvas.width; i+=50) {
-            ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,canvas.height); ctx.stroke();
-        }
 
         // Draw Fonts
         items.forEach(f => {
             ctx.font = f.font.style;
-            ctx.fillStyle = f.isTarget ? '#ffffff' : '#444466';
-            ctx.fillText(f.text, f.x, f.y);
+            ctx.fillStyle = f.isTarget ? '#fff' : '#00f2ff33'; // Targets are bright
+            ctx.fillText("16-BYTES", f.x, f.y);
         });
 
         // Draw Viruses
-        viruses.forEach((v) => {
+        viruses.forEach((v, i) => {
             v.x += v.vx; v.y += v.vy;
             if(v.x < 0 || v.x > canvas.width - v.size) v.vx *= -1;
             if(v.y < 0 || v.y > canvas.height - v.size) v.vy *= -1;
 
-            ctx.fillStyle = v.color;
+            ctx.fillStyle = '#ff0055';
             ctx.fillRect(v.x, v.y, v.size, v.size);
-            // Glitch effect: small trailing squares
-            if(Math.random() > 0.8) ctx.fillRect(v.x-10, v.y+5, 5, 5);
-
-            // Collision with targets
-            items.forEach(f => {
-                if(f.isTarget && v.x < f.x + 100 && v.x + v.size > f.x && v.y < f.y && v.y + v.size > f.y - 30) {
-                    health -= 0.3;
-                    if(Math.random() > 0.95) triggerShake();
-                }
-            });
+            
+            // Damage check
+            health -= 0.05; 
         });
-
-        document.getElementById('health').innerText = Math.ceil(health) + "%";
-        document.getElementById('health').style.color = health < 30 ? "#ff0055" : "#00f2ff";
-        document.getElementById('count').innerText = items.filter(i => i.isTarget).length;
 
         if(health <= 0) {
             gameActive = false;
             document.getElementById('game-over').style.display = 'block';
-            document.getElementById('reason').innerText = "MEMORY LEAK DETECTED. FONT_DATA_CORRUPT. TRACEBACK: 16-BYTES";
         }
 
         requestAnimationFrame(gameLoop);
     }
 
-    init();
+    // Init
+    for(let i=0; i<15; i++) items.push(createItem());
+    setInterval(() => { if(gameActive) createVirus(); }, 2000);
+    updateUI();
+    gameLoop();
 </script>
 </body>
 </html>
