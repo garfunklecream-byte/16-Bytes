@@ -2,77 +2,88 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>16-BYTES // GLITCH HUNTER</title>
+    <title>16-BYTES // SYSTEM PURGE</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-
-        :root {
-            --pixel-size: 4px;
-        }
 
         body { 
             margin: 0; background: #000; overflow: hidden;
             font-family: 'Press Start 2P', cursive; cursor: none;
         }
 
-        #pixel-screen {
+        /* PIXELATION & CRT OVERLAY */
+        #crt-overlay {
             position: fixed; inset: 0;
-            background-image: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
-                              linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            background-size: 100% 4px, 3px 100%; pointer-events: none; z-index: 100;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%),
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 3px, 2px 100%; pointer-events: none; z-index: 100;
         }
 
         canvas { display: block; image-rendering: pixelated; }
 
+        /* UI ELEMENTS */
         .menu {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.95);
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9);
             display: flex; flex-direction: column; align-items: center; 
-            justify-content: center; z-index: 200; color: #fff;
+            justify-content: center; z-index: 200; color: #fff; text-align: center;
         }
 
         #ui-bar {
             position: absolute; top: 0; width: 100%; height: 50px;
             display: flex; align-items: center; justify-content: space-around;
-            background: rgba(0,0,0,0.8); border-bottom: 2px solid #ff0055; 
+            background: rgba(0,0,0,0.85); border-bottom: 2px solid #333; 
             font-size: 10px; z-index: 50; color: #fff;
         }
 
+        /* SHOP GRID */
+        #shop-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+            max-height: 300px; overflow-y: auto; padding: 20px;
+        }
+
         .btn {
-            background: #222; border: 3px solid #fff; color: #fff;
-            padding: 10px 20px; margin: 10px; font-family: 'Press Start 2P';
-            cursor: pointer; font-size: 10px;
+            background: #111; border: 2px solid #fff; color: #fff;
+            padding: 10px; font-family: 'Press Start 2P';
+            cursor: pointer; font-size: 8px;
         }
         .btn:hover { background: #fff; color: #000; }
 
         #crosshair {
-            position: fixed; width: 24px; height: 24px; border: 2px solid #fff;
-            pointer-events: none; z-index: 400; transform: translate(-50%, -50%);
+            position: fixed; width: 30px; height: 30px;
+            border: 2px solid #fff; pointer-events: none; z-index: 400; 
+            transform: translate(-50%, -50%);
+        }
+
+        /* SCREEN SHAKE CLASS */
+        .shake { animation: shakeAnim 0.1s infinite; }
+        @keyframes shakeAnim {
+            0% { transform: translate(2px, 1px) rotate(0deg); }
+            50% { transform: translate(-1px, -2px) rotate(-1deg); }
+            100% { transform: translate(1px, 2px) rotate(0deg); }
         }
     </style>
 </head>
 <body>
 
-    <div id="pixel-screen"></div>
+    <div id="crt-overlay"></div>
     <div id="crosshair"></div>
 
     <div id="main-menu" class="menu">
-        <h1 style="color: #00f2ff;">16-BYTES</h1>
-        <button class="btn" onclick="startGame()">INITIALIZE</button>
+        <h1 style="font-size: 40px; color: #00f2ff; margin-bottom: 50px;">16-BYTES</h1>
+        <button class="btn" onclick="startGame()" style="font-size: 18px;">RUN_PROCESS</button>
+        <p style="font-size: 8px; margin-top: 20px; color: #555;">[P] TO PAUSE/SHOP</p>
     </div>
 
     <div id="pause-menu" class="menu" style="display:none;">
-        <h2>TERMINAL_PAUSED</h2>
-        <div id="shop-bytes" style="color:yellow">BYTES: 0</div>
-        <div style="display:flex; gap:10px; margin:20px;">
-            <button class="btn" onclick="applyTheme('CYBER')">CYBER_BLUE (0B)</button>
-            <button class="btn" onclick="applyTheme('VIRTUAL')">VIRTUAL_RED (500B)</button>
-            <button class="btn" onclick="applyTheme('MATRIX')">MATRIX_GREEN (1000B)</button>
-        </div>
-        <button class="btn" onclick="togglePause()">RESUME</button>
+        <h2 id="pause-title">TERMINAL_PAUSED</h2>
+        <div style="color:yellow; margin-bottom: 10px;">BYTES: <span id="shop-bytes">0</span></div>
+        <div id="shop-grid"></div>
+        <button class="btn" onclick="togglePause()" style="margin-top: 20px;">RESUME</button>
     </div>
 
     <div id="ui-bar">
-        <div>BYTES: <span id="byte-count">0</span></div>
+        <div>B: <span id="byte-count" style="color:yellow">0</span></div>
+        <div id="sys-status">STATUS: OK</div>
         <div>HP: <span id="hp">100</span>%</div>
     </div>
 
@@ -86,19 +97,52 @@
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // GAME STATE
+    // GAME DATA
     let bytes = 0, health = 100, gameRunning = false, isPaused = false;
     let particles = [], fonts = [], glitchGrid = {};
-    const GRID_SIZE = 25;
-    const WORDS = ["VOID", "ERROR", "NULL", "ROOT", "DATA", "KERNEL", "TRACE", "BYTE", "INDEX"];
+    const GRID_SIZE = 30;
+    const WORDS = ["VOID", "NULL", "ROOT", "KERN", "SYNC", "EXEC", "HALT", "LINK"];
 
-    // THEMES
-    const THEMES = {
-        CYBER: { bg: '#020208', font: '#00f2ff', virus: '#111144', root: '#00f2ff' },
-        VIRTUAL: { bg: '#100000', font: '#ff0055', virus: '#440011', root: '#ff9900' },
-        MATRIX: { bg: '#000800', font: '#00ff41', virus: '#002200', root: '#ffffff' }
-    };
-    let currentTheme = THEMES.CYBER;
+    // 24 THEMES SYSTEM
+    const THEMES = [
+        { name: "CYBER", bg: "#020208", font: "#00f2ff", vir: "#111144", cost: 0 },
+        { name: "VIRTUAL", bg: "#150000", font: "#ff0055", vir: "#440011", cost: 200 },
+        { name: "MATRIX", bg: "#000a00", font: "#00ff41", vir: "#002200", cost: 500 },
+        { name: "AMBER", bg: "#100a00", font: "#ffb300", vir: "#332200", cost: 300 },
+        { name: "DOS", bg: "#000000", font: "#ffffff", vir: "#333333", cost: 100 },
+        { name: "VAPOR", bg: "#1a002e", font: "#ff71ce", vir: "#01cdfe", cost: 600 },
+        { name: "MINT", bg: "#001a1a", font: "#b2ff59", vir: "#004d40", cost: 400 },
+        { name: "CRIMSON", bg: "#0a0000", font: "#ff5252", vir: "#310000", cost: 250 },
+        { name: "PLASMA", bg: "#0d001a", font: "#e040fb", vir: "#311b92", cost: 700 },
+        { name: "FOREST", bg: "#051105", font: "#8bc34a", vir: "#1b5e20", cost: 350 },
+        { name: "GOLD", bg: "#000000", font: "#ffd700", vir: "#443300", cost: 1000 },
+        { name: "OCEAN", bg: "#000d1a", font: "#40c4ff", vir: "#01579b", cost: 450 },
+        { name: "BLOOD", bg: "#1a0000", font: "#d50000", vir: "#000000", cost: 800 },
+        { name: "HACKER", bg: "#000000", font: "#39ff14", vir: "#003300", cost: 550 },
+        { name: "ORCHID", bg: "#120012", font: "#ff00ff", vir: "#330033", cost: 650 },
+        { name: "FROST", bg: "#f0f8ff", font: "#000000", vir: "#add8e6", cost: 900 },
+        { name: "SUNSET", bg: "#2d142c", font: "#ee4540", vir: "#801336", cost: 750 },
+        { name: "STEEL", bg: "#23272a", font: "#99aab5", vir: "#2c2f33", cost: 150 },
+        { name: "LAVA", bg: "#210002", font: "#ff4500", vir: "#4a0000", cost: 850 },
+        { name: "NEON", bg: "#000000", font: "#f3f315", vir: "#333300", cost: 200 },
+        { name: "CHALK", bg: "#2c3e50", font: "#ecf0f1", vir: "#34495e", cost: 300 },
+        { name: "RETRO", bg: "#352f44", font: "#dbd8e3", vir: "#5c5470", cost: 400 },
+        { name: "TOXIC", bg: "#000000", font: "#ccff00", vir: "#1a3300", cost: 950 },
+        { name: "GHOST", bg: "#ffffff", font: "#cccccc", vir: "#eeeeee", cost: 1200 }
+    ];
+    let currentTheme = THEMES[0];
+    let ownedThemes = ["CYBER"];
+
+    // INITIALIZE SHOP
+    const shopContainer = document.getElementById('shop-grid');
+    THEMES.forEach(t => {
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.id = `btn-${t.name}`;
+        btn.innerText = `${t.name}\n${t.cost}B`;
+        btn.onclick = () => buyTheme(t);
+        shopContainer.appendChild(btn);
+    });
 
     window.addEventListener('mousemove', e => {
         crosshair.style.left = e.clientX + 'px';
@@ -106,37 +150,44 @@
     });
 
     window.addEventListener('keydown', e => {
-        if(e.key === 'p' || e.key === 'Escape') togglePause();
+        if(e.key.toLowerCase() === 'p' || e.key === 'Escape') togglePause();
     });
 
-    function applyTheme(key) {
-        let cost = key === 'VIRTUAL' ? 500 : (key === 'MATRIX' ? 1000 : 0);
-        if(bytes >= cost) {
-            if(cost > 0 && currentTheme !== THEMES[key]) bytes -= cost;
-            currentTheme = THEMES[key];
-            updateUI();
+    function buyTheme(theme) {
+        if(ownedThemes.includes(theme.name)) {
+            currentTheme = theme;
+        } else if(bytes >= theme.cost) {
+            bytes -= theme.cost;
+            ownedThemes.push(theme.name);
+            currentTheme = theme;
+            document.getElementById(`btn-${theme.name}`).style.borderColor = "#00f2ff";
         }
+        updateUI();
     }
 
-    function togglePause() {
-        isPaused = !isPaused;
-        document.getElementById('pause-menu').style.display = isPaused ? 'flex' : 'none';
-        document.getElementById('shop-bytes').innerText = `BYTES: ${bytes}`;
+    function triggerShake() {
+        document.body.classList.add('shake');
+        setTimeout(() => document.body.classList.remove('shake'), 150);
     }
 
-    function spawnParticle(x, y) {
-        for(let i=0; i<8; i++) {
+    function spawnParticle(x, y, color = "#ff0000") {
+        for(let i=0; i<12; i++) {
             particles.push({
-                x, y, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10,
-                life: 1.0, color: '#ff0000'
+                x, y, 
+                vx: (Math.random()-0.5)*15, 
+                vy: (Math.random()-0.5)*15,
+                gravity: 0.4,
+                life: 1.0, 
+                color: color
             });
         }
     }
 
     function spawnFont() {
         fonts.push({
-            x: Math.random()*canvas.width, y: Math.random()*canvas.height,
-            vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2,
+            x: Math.random()*canvas.width, 
+            y: -50, // Start above screen
+            vy: 1 + Math.random()*2, // Falling speed
             text: WORDS[Math.floor(Math.random()*WORDS.length)],
             isTarget: Math.random() > 0.8
         });
@@ -147,26 +198,40 @@
         const gx = Math.floor(e.clientX / GRID_SIZE), gy = Math.floor(e.clientY / GRID_SIZE);
         const key = `${gx},${gy}`;
 
+        triggerShake();
+
+        // Check Glitch
         if(glitchGrid[key]) {
-            if(glitchGrid[key].isRoot) { glitchGrid = {}; bytes += 150; }
-            else { delete glitchGrid[key]; bytes += 5; }
-            spawnParticle(e.clientX, e.clientY);
+            if(glitchGrid[key].isRoot) { 
+                glitchGrid = {}; bytes += 100; spawnParticle(e.clientX, e.clientY, "#00ff00");
+            } else { 
+                delete glitchGrid[key]; bytes += 5; spawnParticle(e.clientX, e.clientY, "#ff0000");
+            }
             updateUI(); return;
         }
 
+        // Check Fonts
         fonts.forEach((f, i) => {
-            if(Math.hypot(e.clientX - f.x, e.clientY - f.y) < 40) {
-                bytes += f.isTarget ? 100 : 20;
-                spawnParticle(f.x, f.y);
-                fonts.splice(i, 1); spawnFont(); updateUI();
+            if(Math.hypot(e.clientX - f.x, e.clientY - (f.y-10)) < 40) {
+                bytes += f.isTarget ? 50 : 10;
+                spawnParticle(f.x, f.y, "#ffffff");
+                fonts.splice(i, 1);
+                updateUI();
             }
         });
     });
 
+    function togglePause() {
+        if(!gameRunning) return;
+        isPaused = !isPaused;
+        document.getElementById('pause-menu').style.display = isPaused ? 'flex' : 'none';
+        document.getElementById('shop-bytes').innerText = bytes;
+    }
+
     function startGame() {
         document.getElementById('main-menu').style.display = 'none';
         gameRunning = true;
-        for(let i=0; i<12; i++) spawnFont();
+        for(let i=0; i<10; i++) spawnFont();
         requestAnimationFrame(gameLoop);
     }
 
@@ -184,60 +249,69 @@
     }
 
     function update() {
-        // Virus Spawning
-        if(Math.random() < 0.005) {
+        // Virus Logic
+        if(Math.random() < 0.008) {
             const k = `${Math.floor(Math.random()*canvas.width/GRID_SIZE)},${Math.floor(Math.random()*canvas.height/GRID_SIZE)}`;
             if(!glitchGrid[k]) glitchGrid[k] = { isRoot: true, p: 0 };
         }
 
-        // Spread logic
         Object.keys(glitchGrid).forEach(k => {
-            if(Math.random() < 0.008) {
+            if(Math.random() < 0.005) {
                 const [x, y] = k.split(',').map(Number);
                 const n = [[0,1],[0,-1],[1,0],[-1,0]][Math.floor(Math.random()*4)];
                 glitchGrid[`${x+n[0]},${y+n[1]}`] = glitchGrid[`${x+n[0]},${y+n[1]}`] || { isRoot: false };
             }
         });
 
-        fonts.forEach(f => {
-            f.x += f.vx; f.y += f.vy;
-            if(f.x<0 || f.x>canvas.width) f.vx*=-1;
-            if(f.y<0 || f.y>canvas.height) f.vy*=-1;
+        // Falling Fonts
+        if(Math.random() < 0.03) spawnFont();
+        fonts.forEach((f, i) => {
+            f.y += f.vy;
+            if(f.y > canvas.height + 50) fonts.splice(i, 1);
         });
 
-        particles.forEach((p, i) => { p.x += p.vx; p.y += p.vy; p.life -= 0.02; if(p.life<=0) particles.splice(i, 1); });
-        health -= (Object.keys(glitchGrid).length * 0.005);
-        if(health <= 0) { gameRunning = false; alert("SYSTEM TERMINATED"); location.reload(); }
+        // Particles
+        particles.forEach((p, i) => { 
+            p.x += p.vx; 
+            p.y += p.vy; 
+            p.vy += p.gravity; // Gravity makes particles fall
+            p.life -= 0.02; 
+            if(p.life <= 0) particles.splice(i, 1); 
+        });
+
+        health -= (Object.keys(glitchGrid).length * 0.008);
+        if(health <= 0) { gameRunning = false; alert("CRITICAL FAILURE. BYTES HARVESTED: " + bytes); location.reload(); }
     }
 
     function draw() {
         ctx.fillStyle = currentTheme.bg;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        // Virus
         Object.keys(glitchGrid).forEach(k => {
             const [gx, gy] = k.split(',').map(Number);
             const n = glitchGrid[k];
+            ctx.fillStyle = n.isRoot ? "#fff" : currentTheme.vir;
             if(n.isRoot) {
-                n.p += 0.2;
-                ctx.fillStyle = currentTheme.root;
-                ctx.globalAlpha = 0.5 + Math.sin(n.p)*0.5;
-            } else {
-                ctx.fillStyle = currentTheme.virus;
-                ctx.globalAlpha = 0.6;
-            }
+                n.p += 0.2; ctx.globalAlpha = 0.5 + Math.sin(n.p)*0.5;
+            } else { ctx.globalAlpha = 0.8; }
             ctx.fillRect(gx*GRID_SIZE, gy*GRID_SIZE, GRID_SIZE-2, GRID_SIZE-2);
-            ctx.globalAlpha = 1;
+            ctx.globalAlpha = 1.0;
         });
 
+        // Fonts
         fonts.forEach(f => {
-            ctx.font = '16px "Press Start 2P"';
+            ctx.font = '14px "Press Start 2P"';
             ctx.fillStyle = f.isTarget ? '#fff' : currentTheme.font;
-            ctx.fillText(f.text, f.x, f.y);
+            ctx.fillText(f.text, f.x - 20, f.y);
         });
 
+        // Particles
         particles.forEach(p => {
-            ctx.fillStyle = `rgba(255, 0, 0, ${p.life})`;
-            ctx.fillRect(p.x, p.y, 6, 6);
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = p.life;
+            ctx.fillRect(p.x, p.y, 4, 4);
+            ctx.globalAlpha = 1;
         });
     }
 </script>
